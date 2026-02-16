@@ -485,36 +485,148 @@ function Dashboard({ user, token }) {
   const [bookings, setBookings] = useState([])
   const [properties, setProperties] = useState([])
   const [showPropertyForm, setShowPropertyForm] = useState(false)
-  const [propertyForm, setPropertyForm] = useState({
-    title: '', description: '', address: '', city: '', country: 'Australia',
-    bedrooms: 2, bathrooms: 1, petsAllowed: 'dogs,cats'
-  })
-  const [submitLoading, setSubmitLoading] = useState(false)
+  const [addressSuggestions, setAddressSuggestions] = useState([])
+  const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    apiFetch('/api/bookings').then(setBookings).catch(console.error)
-    apiFetch('/api/properties').then(setProperties).catch(console.error)
-  }, [token])
+  const [propertyForm, setPropertyForm] = useState({
+    // Basic info
+    title: '',
+    description: '',
+    propertyType: 'house',
+    // Location
+    address: '',
+    city: '',
+    state: '',
+    postcode: '',
+    country: 'Australia',
+    // Details
+    bedrooms: 2,
+    bathrooms: 1,
+    beds: 2,
+    maxGuests: 4,
+    // Pet details
+    petsAllowed: 'dogs,cats',
+    maxPets: 2,
+    petSize: 'any', // small, medium, large, any
+    fencedYard: false,
+    // Amenities
+    amenities: {
+      wifi: true,
+      parking: true,
+      aircon: false,
+      heating: false,
+      washer: true,
+      dryer: false,
+      kitchen: true,
+      tv: true,
+      pool: false,
+      fencedYard: false,
+      petBeds: false,
+      petBowls: false,
+    },
+    // Photos
+    images: [''],
+    // House rules
+    smokingAllowed: false,
+    partiesAllowed: false,
+    quietHours: '',
+  })
+
+  // Address autocomplete using Nominatim (free)
+  const searchAddress = async (query) => {
+    if (query.length < 4) {
+      setAddressSuggestions([])
+      return
+    }
+    try {
+      const res = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=au&limit=5`,
+        { headers: { 'User-Agent': 'PetSwap/1.0' } }
+      )
+      const data = await res.json()
+      setAddressSuggestions(data.map(d => ({
+        display: d.display_name,
+        lat: d.lat,
+        lon: d.lon,
+      })))
+    } catch (e) {
+      console.error('Address search failed', e)
+    }
+  }
+
+  const selectAddress = (suggestion) => {
+    // Parse the display name to extract parts
+    const parts = suggestion.display.split(', ')
+    setPropertyForm({
+      ...propertyForm,
+      address: parts[0] || '',
+      city: parts[1 || parts[0]] || '',
+      state: 'Western Australia', // Default for Australia
+      postcode: parts[parts.length - 2]?.replace(/\D/g, '') || '',
+      country: 'Australia',
+    })
+    setAddressSuggestions([])
+  }
 
   const handlePropertySubmit = async (e) => {
     e.preventDefault()
-    setSubmitLoading(true)
+    setSubmitting(true)
     try {
+      // Filter out empty images
+      const filteredImages = propertyForm.images.filter(img => img.trim())
+      
       await apiFetch('/api/properties', {
         method: 'POST',
-        body: JSON.stringify({ ...propertyForm, amenities: [], images: [] }),
+        body: JSON.stringify({
+          title: propertyForm.title,
+          description: propertyForm.description,
+          propertyType: propertyForm.propertyType,
+          address: propertyForm.address,
+          city: propertyForm.city,
+          state: propertyForm.state,
+          postcode: propertyForm.postcode,
+          country: propertyForm.country,
+          bedrooms: propertyForm.bedrooms,
+          bathrooms: propertyForm.bathrooms,
+          beds: propertyForm.beds,
+          maxGuests: propertyForm.maxGuests,
+          petsAllowed: propertyForm.petsAllowed,
+          maxPets: propertyForm.maxPets,
+          petSize: propertyForm.petSize,
+          fencedYard: propertyForm.fencedYard,
+          amenities: JSON.stringify(propertyForm.amenities),
+          images: JSON.stringify(filteredImages),
+          smokingAllowed: propertyForm.smokingAllowed,
+          partiesAllowed: propertyForm.partiesAllowed,
+          quietHours: propertyForm.quietHours,
+        }),
       })
       setShowPropertyForm(false)
-      setPropertyForm({ title: '', description: '', address: '', city: '', country: 'Australia', bedrooms: 2, bathrooms: 1, petsAllowed: 'dogs,cats' })
-      // Refresh properties
+      resetForm()
       const updated = await apiFetch('/api/properties')
       setProperties(updated)
     } catch (err) {
       alert(err.message)
     } finally {
-      setSubmitLoading(false)
+      setSubmitting(false)
     }
   }
+
+  const resetForm = () => {
+    setPropertyForm({
+      title: '', description: '', propertyType: 'house',
+      address: '', city: '', state: '', postcode: '', country: 'Australia',
+      bedrooms: 2, bathrooms: 1, beds: 2, maxGuests: 4,
+      petsAllowed: 'dogs,cats', maxPets: 2, petSize: 'any', fencedYard: false,
+      amenities: { wifi: true, parking: true, aircon: false, heating: false, washer: true, dryer: false, kitchen: true, tv: true, pool: false, fencedYard: false, petBeds: false, petBowls: false },
+      images: [''], smokingAllowed: false, partiesAllowed: false, quietHours: '',
+    })
+  }
+
+  const addImageField = () => setPropertyForm({ ...propertyForm, images: [...propertyForm.images, ''] })
+  const removeImageField = (i) => setPropertyForm({ ...propertyForm, images: propertyForm.images.filter((_, idx) => idx !== i) })
+  const updateImage = (i, val) => { const imgs = [...propertyForm.images]; imgs[i] = val; setPropertyForm({ ...propertyForm, images: imgs }) }
+  const toggleAmenity = (key) => setPropertyForm({ ...propertyForm, amenities: { ...propertyForm.amenities, [key]: !propertyForm.amenities[key] } })
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
@@ -563,33 +675,128 @@ function Dashboard({ user, token }) {
           </div>
 
           {showPropertyForm ? (
-            <form onSubmit={handlePropertySubmit} className="space-y-3">
-              <input type="text" placeholder="Property title" value={propertyForm.title} onChange={e => setPropertyForm({...propertyForm, title: e.target.value})} required className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-              <textarea placeholder="Description" value={propertyForm.description} onChange={e => setPropertyForm({...propertyForm, description: e.target.value})} required rows={3} className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-              <input type="text" placeholder="Address" value={propertyForm.address} onChange={e => setPropertyForm({...propertyForm, address: e.target.value})} required className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-              <div className="grid grid-cols-2 gap-3">
-                <input type="text" placeholder="City" value={propertyForm.city} onChange={e => setPropertyForm({...propertyForm, city: e.target.value})} required className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                <input type="text" placeholder="Country" value={propertyForm.country} onChange={e => setPropertyForm({...propertyForm, country: e.target.value})} required className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-              </div>
-              <div className="grid grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Bedrooms</label>
-                  <input type="number" value={propertyForm.bedrooms} onChange={e => setPropertyForm({...propertyForm, bedrooms: e.target.value})} required className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Bathrooms</label>
-                  <input type="number" value={propertyForm.bathrooms} onChange={e => setPropertyForm({...propertyForm, bathrooms: e.target.value})} required className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
-                </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">Pets</label>
-                  <input type="text" placeholder="dogs,cats" value={propertyForm.petsAllowed} onChange={e => setPropertyForm({...propertyForm, petsAllowed: e.target.value})} required className="w-full px-3 py-2 rounded-md border border-gray-300 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
+            <form onSubmit={handlePropertySubmit} className="space-y-6">
+              {/* Property Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Property Type</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {['house', 'apartment', 'villa', 'cabin', 'flat', 'townhouse'].map(type => (
+                    <button type="button" key={type}
+                      onClick={() => setPropertyForm({...propertyForm, propertyType: type})}
+                      className={`px-3 py-2 rounded-lg text-sm capitalize border ${propertyForm.propertyType === type ? 'bg-emerald-100 border-emerald-500 text-emerald-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                    >
+                      {type}
+                    </button>
+                  ))}
                 </div>
               </div>
+
+              {/* Title & Description */}
+              <div className="space-y-3">
+                <input type="text" placeholder="Property title *" value={propertyForm.title} onChange={e => setPropertyForm({...propertyForm, title: e.target.value})} required 
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                <textarea placeholder="Description - tell guests about your home and what makes it great for pets *" value={propertyForm.description} onChange={e => setPropertyForm({...propertyForm, description: e.target.value})} required rows={4}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+              </div>
+
+              {/* Address with Autocomplete */}
+              <div className="relative">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Address *</label>
+                <input type="text" placeholder="Start typing your address..." value={propertyForm.address} onChange={e => { setPropertyForm({...propertyForm, address: e.target.value}); searchAddress(e.target.value) }} required 
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" />
+                {addressSuggestions.length > 0 && (
+                  <div className="absolute z-10 w-full bg-white border border-gray-200 rounded-lg shadow-lg mt-1 max-h-48 overflow-auto">
+                    {addressSuggestions.map((s, i) => (
+                      <button key={i} type="button" onClick={() => selectAddress(s)} className="w-full text-left px-4 py-3 text-sm hover:bg-emerald-50 border-b border-gray-100 last:border-0">
+                        {s.display}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* City/State/Postcode/Country */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div><label className="block text-xs text-gray-500 mb-1">City *</label><input type="text" value={propertyForm.city} onChange={e => setPropertyForm({...propertyForm, city: e.target.value})} required className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" /></div>
+                <div><label className="block text-xs text-gray-500 mb-1">State</label><input type="text" value={propertyForm.state} onChange={e => setPropertyForm({...propertyForm, state: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" /></div>
+                <div><label className="block text-xs text-gray-500 mb-1">Postcode</label><input type="text" value={propertyForm.postcode} onChange={e => setPropertyForm({...propertyForm, postcode: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" /></div>
+                <div><label className="block text-xs text-gray-500 mb-1">Country *</label><input type="text" value={propertyForm.country} onChange={e => setPropertyForm({...propertyForm, country: e.target.value})} required className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" /></div>
+              </div>
+
+              {/* Property Details */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Property Details</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div><label className="block text-xs text-gray-500 mb-1">Bedrooms *</label><input type="number" min="1" value={propertyForm.bedrooms} onChange={e => setPropertyForm({...propertyForm, bedrooms: parseInt(e.target.value)})} required className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" /></div>
+                  <div><label className="block text-xs text-gray-500 mb-1">Bathrooms *</label><input type="number" min="1" value={propertyForm.bathrooms} onChange={e => setPropertyForm({...propertyForm, bathrooms: parseInt(e.target.value)})} required className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" /></div>
+                  <div><label className="block text-xs text-gray-500 mb-1">Beds</label><input type="number" min="1" value={propertyForm.beds} onChange={e => setPropertyForm({...propertyForm, beds: parseInt(e.target.value)})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" /></div>
+                  <div><label className="block text-xs text-gray-500 mb-1">Max Guests</label><input type="number" min="1" value={propertyForm.maxGuests} onChange={e => setPropertyForm({...propertyForm, maxGuests: parseInt(e.target.value)})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" /></div>
+                </div>
+              </div>
+
+              {/* Pet Details */}
+              <div className="bg-emerald-50 rounded-xl p-4">
+                <h4 className="text-sm font-semibold text-emerald-800 mb-3">🐾 Pet Details</h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
+                  <div><label className="block text-xs text-gray-600 mb-1">Pets Accepted</label><input type="text" placeholder="e.g. dogs, cats" value={propertyForm.petsAllowed} onChange={e => setPropertyForm({...propertyForm, petsAllowed: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" /></div>
+                  <div><label className="block text-xs text-gray-600 mb-1">Max Pets</label><input type="number" min="1" value={propertyForm.maxPets} onChange={e => setPropertyForm({...propertyForm, maxPets: parseInt(e.target.value)})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" /></div>
+                  <div><label className="block text-xs text-gray-600 mb-1">Pet Size</label>
+                    <select value={propertyForm.petSize} onChange={e => setPropertyForm({...propertyForm, petSize: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
+                      <option value="any">Any size</option><option value="small">Small (&lt;10kg)</option><option value="medium">Medium (10-25kg)</option><option value="large">Large (&gt;25kg)</option>
+                    </select>
+                  </div>
+                </div>
+                <div className="flex gap-4 text-sm">
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={propertyForm.fencedYard} onChange={e => setPropertyForm({...propertyForm, fencedYard: e.target.checked})} className="rounded text-emerald-600" /> Fenced yard</label>
+                </div>
+              </div>
+
+              {/* Amenities */}
+              <div>
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">Amenities</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                  {[
+                    ['wifi', 'WiFi'], ['parking', 'Parking'], ['aircon', 'Air Con'], ['heating', 'Heating'],
+                    ['washer', 'Washer'], ['dryer', 'Dryer'], ['kitchen', 'Kitchen'], ['tv', 'TV'],
+                    ['pool', 'Pool'], ['petBeds', 'Pet Beds'], ['petBowls', 'Pet Bowls'], ['fencedYard', 'Fenced Yard'],
+                  ].map(([key, label]) => (
+                    <label key={key} className={`flex items-center gap-2 px-3 py-2 rounded-lg border cursor-pointer text-sm ${propertyForm.amenities[key] ? 'bg-emerald-50 border-emerald-300 text-emerald-700' : 'border-gray-200 text-gray-600'}`}>
+                      <input type="checkbox" checked={propertyForm.amenities[key]} onChange={() => toggleAmenity(key)} className="rounded text-emerald-600" /> {label}
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Photos */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-medium text-gray-700">Photos (URLs)</label>
+                  <button type="button" onClick={addImageField} className="text-sm text-emerald-600 hover:text-emerald-700">+ Add another</button>
+                </div>
+                {propertyForm.images.map((img, i) => (
+                  <div key={i} className="flex gap-2 mb-2">
+                    <input type="url" placeholder="https://example.com/photo.jpg" value={img} onChange={e => updateImage(i, e.target.value)} className="flex-1 px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+                    {propertyForm.images.length > 1 && <button type="button" onClick={() => removeImageField(i)} className="px-3 py-2 text-red-500 hover:bg-red-50 rounded-lg">✕</button>}
+                  </div>
+                ))}
+              </div>
+
+              {/* House Rules */}
+              <div className="bg-gray-50 rounded-xl p-4">
+                <h4 className="text-sm font-semibold text-gray-700 mb-3">House Rules</h4>
+                <div className="flex flex-wrap gap-4 text-sm mb-3">
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={propertyForm.smokingAllowed} onChange={e => setPropertyForm({...propertyForm, smokingAllowed: e.target.checked})} /> Smoking allowed</label>
+                  <label className="flex items-center gap-2"><input type="checkbox" checked={propertyForm.partiesAllowed} onChange={e => setPropertyForm({...propertyForm, partiesAllowed: e.target.checked})} /> Parties allowed</label>
+                </div>
+                <input type="text" placeholder="Quiet hours (e.g. 10pm - 8am)" value={propertyForm.quietHours} onChange={e => setPropertyForm({...propertyForm, quietHours: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+              </div>
+
+              {/* Submit */}
               <div className="flex gap-3 pt-2">
-                <button type="submit" disabled={submitLoading} className="px-4 py-2 rounded-md bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
-                  {submitLoading ? 'Saving...' : 'Save Property'}
+                <button type="submit" disabled={submitting} className="px-6 py-3 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 disabled:opacity-50">
+                  {submitting ? 'Saving...' : 'Save Property'}
                 </button>
-                <button type="button" onClick={() => setShowPropertyForm(false)} className="px-4 py-2 rounded-md border border-gray-300 text-gray-700 text-sm hover:bg-gray-50">
+                <button type="button" onClick={() => { setShowPropertyForm(false); resetForm() }} className="px-6 py-3 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
                   Cancel
                 </button>
               </div>
