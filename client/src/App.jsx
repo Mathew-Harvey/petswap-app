@@ -34,42 +34,6 @@ function App() {
     }
   }, [token])
 
-  // Fetch pets when logged in
-  useEffect(() => {
-    if (token) {
-      apiFetch('/api/pets').then(setPets).catch(console.error)
-    }
-  }, [token])
-
-  // Pet form handlers
-  const handleAddPet = async (e) => {
-    e.preventDefault()
-    setSubmitting(true)
-    try {
-      const newPet = await apiFetch('/api/pets', {
-        method: 'POST',
-        body: JSON.stringify(petForm)
-      })
-      setPets([...pets, newPet])
-      setPetForm({ name: '', type: 'dog', breed: '', age: '', size: 'medium', description: '', imageUrl: '' })
-      setShowPetForm(false)
-    } catch (err) {
-      alert(err.message)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  const handleDeletePet = async (petId) => {
-    if (!confirm('Remove this pet from your profile?')) return
-    try {
-      await apiFetch(`/api/pets/${petId}`, { method: 'DELETE' })
-      setPets(pets.filter(p => p.id !== petId))
-    } catch (err) {
-      alert(err.message)
-    }
-  }
-
   const login = (newToken, userData) => {
     localStorage.setItem('token', newToken)
     setToken(newToken)
@@ -531,6 +495,40 @@ function Dashboard({ user, token }) {
     name: '', type: 'dog', breed: '', age: '', size: 'medium', description: '', imageUrl: ''
   })
 
+  // Fetch pets on mount
+  useEffect(() => {
+    apiFetch('/api/pets').then(setPets).catch(console.error)
+  }, [])
+
+  // Pet form handlers
+  const handleAddPet = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const newPet = await apiFetch('/api/pets', {
+        method: 'POST',
+        body: JSON.stringify(petForm)
+      })
+      setPets([...pets, newPet])
+      setPetForm({ name: '', type: 'dog', breed: '', age: '', size: 'medium', description: '', imageUrl: '' })
+      setShowPetForm(false)
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeletePet = async (petId) => {
+    if (!confirm('Remove this pet from your profile?')) return
+    try {
+      await apiFetch(`/api/pets/${petId}`, { method: 'DELETE' })
+      setPets(pets.filter(p => p.id !== petId))
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
   const [propertyForm, setPropertyForm] = useState({
     // Basic info
     title: '',
@@ -550,7 +548,7 @@ function Dashboard({ user, token }) {
     // Pet details
     petsAllowed: 'dogs,cats',
     maxPets: 2,
-    petSize: 'any', // small, medium, large, any
+    petSize: 'any',
     fencedYard: false,
     // Amenities
     amenities: {
