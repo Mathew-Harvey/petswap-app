@@ -19,4 +19,4 @@ EXPOSE 10000
 ENV NODE_ENV=production
 
 # Start server
-CMD ["sh", "-c", "npx prisma db push && node src/index.js"]
+CMD ["node", "src/index.js"]
