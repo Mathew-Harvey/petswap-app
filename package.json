@@ -7,7 +7,7 @@
     "dev:backend": "cd server && npm run dev",
     "dev:frontend": "cd client && npm run dev",
     "build": "cd client && npm run build",
-    "start": "cd server && npm start",
+    "start": "cd server && NODE_ENV=production npm start",
     "deploy": "npm run build && npm run start"
   },
   "devDependencies": {
