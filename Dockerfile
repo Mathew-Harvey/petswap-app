@@ -2,17 +2,15 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Install server dependencies
-COPY server/package*.json ./server/
-WORKDIR /app/server
-RUN npm install
+# Copy server package files and prisma schema
+COPY server/package*.json ./
+COPY server/prisma ./prisma/
 
-# Generate Prisma client
-COPY server/prisma/ ./prisma/
-RUN npx prisma generate
+# Install dependencies and generate Prisma client
+RUN npm install && npx prisma generate
 
 # Copy server source
-COPY server/src/ ./src/
+COPY server/src ./src
 
 # Expose port
 EXPOSE 10000
