@@ -1,10 +1,8 @@
 FROM node:20-alpine
 
-RUN apk add --no-cache openssl
-
 WORKDIR /app
 
-# Install all dependencies
+# Install root dependencies
 COPY package*.json ./
 RUN npm install
 
@@ -13,11 +11,17 @@ COPY client/ ./client/
 WORKDIR /app/client
 RUN npm install && npm run build
 
-# Copy server
-WORKDIR /app
-COPY server/ ./server/
+# Install server dependencies
 WORKDIR /app/server
-RUN npm install && npx prisma generate
+COPY server/package*.json ./
+RUN npm install
+
+# Generate Prisma client
+COPY server/prisma ./prisma/
+RUN npx prisma generate
+
+# Copy server source
+COPY server/src/ ./src/
 
 # Expose port
 EXPOSE 10000
@@ -25,5 +29,5 @@ EXPOSE 10000
 # Set production mode
 ENV NODE_ENV=production
 
-# Start server
-CMD ["npm", "start"]
+# Start server (Prisma db push runs on start to ensure schema is up to date)
+CMD ["sh", "-c", "npx prisma db push && node src/index.js"]
