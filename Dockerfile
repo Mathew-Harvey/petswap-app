@@ -22,5 +22,8 @@ RUN npm install && npx prisma generate
 # Expose port
 EXPOSE 10000
 
+# Set production mode
+ENV NODE_ENV=production
+
 # Start server
 CMD ["npm", "start"]
