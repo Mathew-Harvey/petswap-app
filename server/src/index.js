@@ -7,7 +7,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const prisma = new PrismaClient();
+const prisma = new PrismaClient()
+prisma.$connect().then(() => console.log("DB connected")).catch(console.error);
 const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 
