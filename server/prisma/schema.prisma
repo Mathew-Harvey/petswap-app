@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int          @id @default(autoincrement())
+  email         String       @unique
+  password      String
+  firstName     String
+  lastName      String
+  phone         String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  properties    Property[]
+  bookings      Booking[]
+  reviews       Review[]
+}
+
+model Property {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  title       String
+  description String
+  address     String
+  city        String
+  country     String
+  bedrooms    Int
+  bathrooms   Int
+  petsAllowed String     // Types of pets: "dogs,cats,birds"
+  amenities   String     // JSON array stored as string
+  images      String     // JSON array of image URLs
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bookings    Booking[]
+  reviews     Review[]
+}
+
+model Booking {
+  id          Int        @id @default(autoincrement())
+  propertyId  Int
+  property    Property   @relation(fields: [propertyId], references: [id])
+  userId      Int
+  user        User       @relation(fields: [userId], references: [id])
+  startDate   DateTime
+  endDate     DateTime
+  status      BookingStatus @default(PENDING)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+model Review {
+  id          Int       @id @default(autoincrement())
+  propertyId  Int
+  property    Property  @relation(fields: [propertyId], references: [id])
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  rating      Int       // 1-5
+  comment     String?
+  createdAt   DateTime  @default(now())
+}
