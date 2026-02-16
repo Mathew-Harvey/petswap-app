@@ -1,0 +1,21 @@
+services:
+  - type: pserv
+    name: petswap-db
+    region: oregon
+    plan: free
+
+  - type: web_service
+    name: petswap-api
+    region: oregon
+    repo: https://github.com/Mathew-Harvey/petswap-app
+    branch: master
+    env: docker
+    dockerCommand: npm start
+    dockerContext: .
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: DATABASE_URL
+        fromService: petswap-db
+        property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
