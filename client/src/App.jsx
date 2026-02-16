@@ -34,6 +34,42 @@ function App() {
     }
   }, [token])
 
+  // Fetch pets when logged in
+  useEffect(() => {
+    if (token) {
+      apiFetch('/api/pets').then(setPets).catch(console.error)
+    }
+  }, [token])
+
+  // Pet form handlers
+  const handleAddPet = async (e) => {
+    e.preventDefault()
+    setSubmitting(true)
+    try {
+      const newPet = await apiFetch('/api/pets', {
+        method: 'POST',
+        body: JSON.stringify(petForm)
+      })
+      setPets([...pets, newPet])
+      setPetForm({ name: '', type: 'dog', breed: '', age: '', size: 'medium', description: '', imageUrl: '' })
+      setShowPetForm(false)
+    } catch (err) {
+      alert(err.message)
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleDeletePet = async (petId) => {
+    if (!confirm('Remove this pet from your profile?')) return
+    try {
+      await apiFetch(`/api/pets/${petId}`, { method: 'DELETE' })
+      setPets(pets.filter(p => p.id !== petId))
+    } catch (err) {
+      alert(err.message)
+    }
+  }
+
   const login = (newToken, userData) => {
     localStorage.setItem('token', newToken)
     setToken(newToken)
@@ -484,9 +520,16 @@ function Register({ onLogin }) {
 function Dashboard({ user, token }) {
   const [bookings, setBookings] = useState([])
   const [properties, setProperties] = useState([])
+  const [pets, setPets] = useState([])
   const [showPropertyForm, setShowPropertyForm] = useState(false)
+  const [showPetForm, setShowPetForm] = useState(false)
   const [addressSuggestions, setAddressSuggestions] = useState([])
   const [submitting, setSubmitting] = useState(false)
+
+  // Pet form state
+  const [petForm, setPetForm] = useState({
+    name: '', type: 'dog', breed: '', age: '', size: 'medium', description: '', imageUrl: ''
+  })
 
   const [propertyForm, setPropertyForm] = useState({
     // Basic info
@@ -812,6 +855,96 @@ function Dashboard({ user, token }) {
                 <div key={p.id} className="p-3 rounded-lg bg-gray-50">
                   <p className="font-medium text-gray-900">{p.title}</p>
                   <p className="text-sm text-gray-500">{p.city}, {p.country} · {p.bedrooms} bed · {p.bathrooms} bath</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* My Pets - Your furry friends at home */}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">🐾 My Pets</h2>
+            {!showPetForm && (
+              <button onClick={() => setShowPetForm(true)} className="text-sm px-4 py-2 rounded-md bg-emerald-600 text-white hover:bg-emerald-700">
+                + Add Pet
+              </button>
+            )}
+          </div>
+
+          {showPetForm ? (
+            <form onSubmit={handleAddPet} className="space-y-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Pet Name *</label>
+                  <input type="text" placeholder="e.g. Buddy" value={petForm.name} onChange={e => setPetForm({...petForm, name: e.target.value})} required className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Type *</label>
+                  <select value={petForm.type} onChange={e => setPetForm({...petForm, type: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
+                    <option value="dog">Dog</option>
+                    <option value="cat">Cat</option>
+                    <option value="bird">Bird</option>
+                    <option value="fish">Fish</option>
+                    <option value="reptile">Reptile</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Breed</label>
+                  <input type="text" placeholder="e.g. Golden Retriever" value={petForm.breed} onChange={e => setPetForm({...petForm, breed: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Size</label>
+                  <select value={petForm.size} onChange={e => setPetForm({...petForm, size: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm">
+                    <option value="small">Small (&lt;10kg)</option>
+                    <option value="medium">Medium (10-25kg)</option>
+                    <option value="large">Large (&gt;25kg)</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">Photo URL</label>
+                <input type="url" placeholder="https://example.com/pet-photo.jpg" value={petForm.imageUrl} onChange={e => setPetForm({...petForm, imageUrl: e.target.value})} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">About this pet</label>
+                <textarea placeholder="Personality, habits, care instructions..." value={petForm.description} onChange={e => setPetForm({...petForm, description: e.target.value})} rows={2} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm" />
+              </div>
+              <div className="flex gap-2">
+                <button type="submit" disabled={submitting} className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
+                  {submitting ? 'Adding...' : 'Add Pet'}
+                </button>
+                <button type="button" onClick={() => setShowPetForm(false)} className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 text-sm hover:bg-gray-50">
+                  Cancel
+                </button>
+              </div>
+            </form>
+          ) : pets.length === 0 ? (
+            <div className="text-center py-8">
+              <div className="text-3xl mb-2">🐕</div>
+              <p className="text-gray-500 mb-2">No pets added yet</p>
+              <p className="text-sm text-gray-400">Add your furry friends so guests know who they'll be caring for!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {pets.map(pet => (
+                <div key={pet.id} className="flex items-start gap-3 p-3 rounded-lg bg-emerald-50 border border-emerald-100">
+                  {pet.imageUrl ? (
+                    <img src={pet.imageUrl} alt={pet.name} className="w-14 h-14 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-14 h-14 rounded-lg bg-emerald-200 flex items-center justify-center text-2xl">
+                      {pet.type === 'dog' ? '🐕' : pet.type === 'cat' ? '🐈' : '🐾'}
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-gray-900">{pet.name}</p>
+                    <p className="text-xs text-gray-500 capitalize">{pet.breed || pet.type} {pet.size ? `• ${pet.size}` : ''}</p>
+                    {pet.description && <p className="text-xs text-gray-600 mt-1 line-clamp-2">{pet.description}</p>}
+                  </div>
+                  <button onClick={() => handleDeletePet(pet.id)} className="text-gray-400 hover:text-red-500 p-1">✕</button>
                 </div>
               ))}
             </div>

@@ -186,6 +186,70 @@ app.post('/api/bookings', authenticate, async (req, res) => {
   }
 });
 
+// Pets - Your pets that live in your home
+app.get('/api/pets', authenticate, async (req, res) => {
+  try {
+    const pets = await prisma.pet.findMany({
+      where: { userId: req.userId },
+      orderBy: { createdAt: 'desc' }
+    });
+    res.json(pets);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/pets', authenticate, async (req, res) => {
+  try {
+    const { name, type, breed, age, size, description, imageUrl } = req.body;
+    
+    const pet = await prisma.pet.create({
+      data: {
+        userId: req.userId,
+        name,
+        type,
+        breed: breed || null,
+        age: age || null,
+        size: size || null,
+        description: description || null,
+        imageUrl: imageUrl || null,
+      }
+    });
+    
+    res.json(pet);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/pets/:id', authenticate, async (req, res) => {
+  try {
+    const petId = parseInt(req.params.id);
+    await prisma.pet.delete({
+      where: { id: petId, userId: req.userId }
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/pets/:id', authenticate, async (req, res) => {
+  try {
+    const petId = parseInt(req.params.id);
+    const { name, type, breed, age, size, description, imageUrl } = req.body;
+    
+    const pet = await prisma.pet.update({
+      where: { id: petId, userId: req.userId },
+      data: { name, type, breed, age, size, description, imageUrl }
+    });
+    
+    res.json(pet);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });

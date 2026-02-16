@@ -19,6 +19,7 @@ model User {
   properties    Property[]
   bookings      Booking[]
   reviews       Review[]
+  pets          Pet[]
 }
 
 model Property {
@@ -70,4 +71,19 @@ model Review {
   rating      Int       // 1-5
   comment     String?
   createdAt   DateTime  @default(now())
+}
+
+model Pet {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  name        String
+  type        String    // dog, cat, bird, fish, reptile, other
+  breed       String?
+  age         String?   // puppy, adult, senior
+  size        String?   // small, medium, large
+  description String?
+  imageUrl    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
