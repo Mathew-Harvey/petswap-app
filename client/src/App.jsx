@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { BrowserRouter, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Link, Navigate, useNavigate } from 'react-router-dom'
 
 const API_URL = import.meta.env.VITE_API_URL || '/api'
 
@@ -55,7 +55,7 @@ function App() {
   }
 
   return (
-    <BrowserRouter>
+    <HashRouter>
       <div className="min-h-screen bg-gray-50">
         {/* Navbar */}
         <nav className="bg-white border-b border-gray-200 shadow-sm">
@@ -94,7 +94,7 @@ function App() {
           <Route path="/dashboard" element={user ? <Dashboard user={user} token={token} /> : <Navigate to="/login" />} />
         </Routes>
       </div>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 
