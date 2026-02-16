@@ -4,20 +4,16 @@ RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-# Install root dependencies
-COPY package*.json ./
+# Install server dependencies
+COPY server/package*.json ./server/
+WORKDIR /app/server
 RUN npm install
 
-# Copy client and build it
-COPY client/ ./client/
-WORKDIR /app/client
-RUN npm install && npm run build
+# Copy server files
+COPY server/ .
 
-# Copy server
-WORKDIR /app
-COPY server/ ./server/
-WORKDIR /app/server
-RUN npm install && npx prisma generate
+# Generate Prisma client
+RUN npx prisma generate
 
 # Expose port
 EXPOSE 10000
