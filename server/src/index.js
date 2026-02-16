@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const path = require('path');
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
@@ -12,13 +11,23 @@ prisma.$connect().then(() => console.log("DB connected")).catch(console.error);
 const PORT = process.env.PORT || 10000;
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-change-in-production';
 
-app.use(cors());
-app.use(express.json());
-
-// Serve static files in production (React SPA)
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../../client/dist')));
+// CORS - allow requests from the web frontend
+const allowedOrigins = [
+  'https://petswap-web.onrender.com',
+  'http://localhost:5173', // Vite dev server
+  'http://localhost:3000', // Alternative dev server
+];
+// Add any origins from ALLOWED_ORIGINS env var
+if (process.env.ALLOWED_ORIGINS) {
+  process.env.ALLOWED_ORIGINS.split(',').forEach(origin => {
+    if (origin.trim()) allowedOrigins.push(origin.trim());
+  });
 }
+app.use(cors({
+  origin: allowedOrigins,
+  credentials: true,
+}));
+app.use(express.json());
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -180,11 +189,6 @@ app.post('/api/bookings', authenticate, async (req, res) => {
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// Serve React app for all other routes (SPA)
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../../client/dist/index.html'));
 });
 
 app.listen(PORT, () => {
