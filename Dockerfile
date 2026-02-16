@@ -20,5 +20,5 @@ EXPOSE 10000
 # Set production mode
 ENV NODE_ENV=production
 
-# Start server
-CMD ["node", "src/index.js"]
+# Start server (run db push first to create new tables)
+CMD ["sh", "-c", "npx prisma db push && node src/index.js"]
