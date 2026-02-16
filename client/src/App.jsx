@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { BrowserRouter, Routes, Route, Link, Navigate } from 'react-router-dom'
 
-const API_URL = '' // Use relative URLs in production (served from same origin)
+const API_URL = 'https://petswap-api.onrender.com'
 
 function App() {
   const [user, setUser] = useState(null)
@@ -57,7 +57,6 @@ function App() {
           <Routes>
             <Route path="/" element={<Home user={user} />} />
             <Route path="/properties" element={<Properties />} />
-            <Route path="/properties/:id" element={<PropertyDetail token={token} />} />
             <Route path="/login" element={<Login onLogin={login} />} />
             <Route path="/register" element={<Register onLogin={login} />} />
             <Route path="/dashboard" element={user ? <Dashboard user={user} token={token} /> : <Navigate to="/login" />} />
@@ -106,18 +105,12 @@ function Properties() {
               <h3>{p.title}</h3>
               <p>{p.city}, {p.country}</p>
               <p>{p.bedrooms} bed • {p.bathrooms} bath</p>
-              <Link to={`/properties/${p.id}`} className="btn btn-primary">View</Link>
             </div>
           ))}
         </div>
       )}
     </div>
   )
-}
-
-function PropertyDetail({ token }) {
-  // Simple implementation - would need route params
-  return <div>Property details coming soon</div>
 }
 
 function Login({ onLogin }) {
@@ -222,8 +215,8 @@ function Dashboard({ user, token }) {
       body: JSON.stringify({ ...propertyForm, amenities: [], images: [] })
     })
     
-.ok) {
-         if (res alert('Property listed!')
+    if (res.ok) {
+      alert('Property listed!')
       setShowPropertyForm(false)
     }
   }
@@ -248,7 +241,7 @@ function Dashboard({ user, token }) {
         {!showPropertyForm ? (
           <button onClick={() => setShowPropertyForm(true)} className="btn btn-primary">Add Property</button>
         ) : (
-          <form onSubmit={handlePropertyForm} className="property-form">
+          <form onSubmit={handlePropertySubmit} className="property-form">
             <input type="text" placeholder="Title" value={propertyForm.title} onChange={e => setPropertyForm({...propertyForm, title: e.target.value})} required />
             <textarea placeholder="Description" value={propertyForm.description} onChange={e => setPropertyForm({...propertyForm, description: e.target.value})} required />
             <input type="text" placeholder="Address" value={propertyForm.address} onChange={e => setPropertyForm({...propertyForm, address: e.target.value})} required />
