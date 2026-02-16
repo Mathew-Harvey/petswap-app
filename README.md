@@ -22,3 +22,4 @@ The full-stack app is being deployed. Current status:
 1. Add PostgreSQL database in Render
 2. Connect DATABASE_URL env var to petswap-api service
 3. Add JWT_SECRET env var
+# Trigger rebuild
