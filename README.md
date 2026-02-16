@@ -1,37 +1,24 @@
-# PetSwap App
+# PetSwap - Holiday House Swaps for People with Pets
 
-Full-stack web application for PetSwap - holiday house swaps for people with pets.
+## Repos
+
+- **Landing Page**: https://github.com/Mathew-Harvey/petswap → https://mathew-harvey.github.io/petswap/
+- **Full-Stack App**: https://github.com/Mathew-Harvey/petswap-app (under construction)
 
 ## Status
 
-🚧 Under construction
+The full-stack app is being deployed. Current status:
+- API backend: needs PostgreSQL database connected
+- Frontend: React app needs API to be ready
 
-## Tech Stack
+## Quick Links
 
-- Frontend: React + TypeScript
-- Backend: Node.js + Express
-- Database: PostgreSQL (via Prisma)
-- Auth: JWT
-- Deployment: Render / Railway
+- Landing Page: https://mathew-harvey.github.io/petswap/
+- App Repo: https://github.com/Mathew-Harvey/petswap-app
+- Render Dashboard: https://dashboard.render.com
 
-## Getting Started
+## To Complete Setup
 
-```bash
-# Install dependencies
-npm install
-
-# Run development server
-npm run dev
-```
-
-## Features
-
-- User authentication
-- Property listings
-- Messaging between users
-- Booking system
-- Reviews and ratings
-
-## Repository for Landing Page
-
-The marketing landing page is at: https://github.com/Mathew-Harvey/petswap
+1. Add PostgreSQL database in Render
+2. Connect DATABASE_URL env var to petswap-api service
+3. Add JWT_SECRET env var
