@@ -19,3 +19,14 @@ services:
         property: connectionString
       - key: JWT_SECRET
         generateValue: true
+
+  - type: static_site
+    name: petswap-web
+    region: oregon
+    repo: https://github.com/Mathew-Harvey/petswap-app
+    branch: master
+    buildCommand: cd client && npm install && npm run build
+    publishDir: client/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://petswap-api.onrender.com
